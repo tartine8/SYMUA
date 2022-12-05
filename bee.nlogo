@@ -1,42 +1,105 @@
+globals [
+  spring-duration
+  bee-max-nectar
+  flower-max-nectar
+  flower-nectar-production
+  bee-pollen-decay
+  bee-pollen-gain
+  hive-nectar
+  flower-max-pollen
+]
+
 breed [bees bee]
 
 bees-own [
-  patrol-time
-  has-pollen?
+  bee-nectar
+  bee-pollen
 ]
 
 patches-own [
-  life-time
-  pollinated?
+  flower-nectar
+  flower-pollen
+  soil-exhaustion
+  flower?
 ]
 
 to init
   __clear-all-and-reset-ticks
+
+  set spring-duration 90
+  set bee-max-nectar 10
+  set flower-nectar 50
+  set flower-nectar-production 1
+  set bee-pollen-decay 1
+  set bee-pollen-gain 0.1
+  set hive-nectar 0
+
   ask patch 0 0 [
     ask patches in-radius 2 [set pcolor yellow]
   ]
+
   init-bees
   init-flowers
 end
+
 
 ;a bee lives from 18 to 32 days
 to init-bees
   create-bees nb-bees [
     setxy 0 0
-    set shape "butterfly"
-    set life-time (random 19 + 14) * 5
+    set shape "bee"
+    set bee-nectar 0
+    set bee-pollen 0
   ]
 end
 
 ;a flower lives from 5 to 12 days
 to init-flowers
+  ask patches with [pcolor != yellow][
+    set flower-pollen 0
+    set soil-exhaustion 0
+    set flower-nectar 0
+  ]
   ask n-of nb-flowers patches with [pcolor != yellow] [
     set pcolor green
-    set life-time (random 6 + 7) * 5
-    ;set life-time 50
-    set pollinated? false
+    set flower? true
   ]
 end
+
+
+
+
+to new-season
+  respawn-flowers
+  respawn-bees
+end
+
+to respawn-flowers
+  ask patches with [flower? = true][
+    set flower? false
+
+    let nbseed (flower-pollen / flower-max-pollen) * 3
+
+    ; for nbseed
+    ; for pick in autour de moi
+    ; if soil-exhaustion suffisament bien
+    ; flower true
+
+    set flower-pollen 0
+    set flower-nectar 0
+
+    if not flower? [
+      set pcolor black
+    ]
+  ]
+
+end
+
+to respawn-bees
+end
+
+
+
 
 to move-bees
   ask bees [
