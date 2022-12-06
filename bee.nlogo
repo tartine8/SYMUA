@@ -1,16 +1,7 @@
 globals [
   spring-duration
-  bee-max-nectar
-  flower-max-nectar
-  flower-nectar-production
-  bee-pollen-decay
   bee-pollen-gain
   hive-nectar
-  flower-max-pollen
-  soil-max-exhaustion
-  hive-max-nectar
-  soil-exhaustion-decay
-  larvae-nectar-cost
 ]
 
 breed [bees bee]
@@ -32,29 +23,17 @@ to init
   __clear-all-and-reset-ticks
 
   set spring-duration 90
-  set bee-max-nectar 10
-  set flower-max-nectar 20
-  set flower-nectar-production 0.0
-  set bee-pollen-decay 0.1
   set bee-pollen-gain 1
   set hive-nectar 0
-  set flower-max-pollen 20
-  set soil-max-exhaustion 10
-  set hive-max-nectar 1000
-  set soil-exhaustion-decay 0.2
-  set larvae-nectar-cost 15
 
   ask patch 0 0 [
     set pcolor yellow
   ]
 
-
   init-bees
   init-flowers
 end
 
-
-;a bee lives from 18 to 32 days
 to init-bees
   create-bees nb-bees [
     setxy 0 0
@@ -64,23 +43,20 @@ to init-bees
   ]
 end
 
-;a flower lives from 5 to 12 days
 to init-flowers
   ask patches with [pcolor != yellow][
     set flower-pollen 0
     set soil-exhaustion 0
-    set flower-nectar 40
+
     set seed? false
     set flower? false
   ]
   ask n-of nb-flowers patches with [pcolor != yellow] [
     set pcolor green
     set flower? true
+    set flower-nectar flower-max-nectar
   ]
 end
-
-
-
 
 to new-season
   restitute-nectar
@@ -88,43 +64,40 @@ to new-season
   respawn-bees
   regenerate-soil
   set hive-nectar 0
-
-  ask patches with [flower? = false and pcolor != yellow] [
-    let c int ((soil-exhaustion / soil-max-exhaustion) * 255)
-    if c > 255 [set c 255]
-    set pcolor (list c 0 0)
-  ]
 end
 
 to restitute-nectar
   ask bees [
     set hive-nectar hive-nectar + bee-nectar
-    if hive-nectar > hive-max-nectar [set hive-nectar hive-max-nectar]
   ]
 end
 
 to respawn-flowers
   ask patches with [flower? = true][
-    set flower? false
-    set pcolor black
 
+    ;FIXME sujet a changement : calcul du nombre de graines
     let nbseed (flower-pollen / flower-max-pollen) * 3
 
     repeat int nbseed [
-      ask one-of patches in-radius 3 with [pcolor != yellow] [
+      ask one-of patches in-radius flower-reproduction-radius with [pcolor != yellow] [
         if (soil-exhaustion < soil-max-exhaustion) [
           set seed?  true
-          set soil-exhaustion soil-exhaustion + 1
         ]
       ]
     ]
 
+    set flower? false
+    set pcolor black
+
     set flower-pollen 0
     set flower-nectar 0
   ]
+
   ask patches with [seed? = true] [
     set flower? true
     set seed? false
+    set soil-exhaustion soil-exhaustion + 1
+    set flower-nectar flower-max-nectar
     set pcolor green
   ]
 
@@ -141,9 +114,15 @@ to respawn-bees
 end
 
 to regenerate-soil
-  ask patches [
+  ask patches with [pcolor != yellow][
     if soil-exhaustion > 0 [set soil-exhaustion soil-exhaustion - soil-exhaustion-decay]
     if soil-exhaustion < 0 [set soil-exhaustion 0]
+  ]
+
+  ask patches with [flower? = false and pcolor != yellow] [
+    let r int ((soil-exhaustion / soil-max-exhaustion) * 255)
+    if r > 255 [set r 255]
+    set pcolor (list r 0 0)
   ]
 end
 
@@ -187,39 +166,19 @@ to interact
   ask patches with [pcolor = yellow] [
     ask bees-here [
       set hive-nectar hive-nectar + bee-nectar
-      if hive-nectar > hive-max-nectar [set hive-nectar hive-max-nectar]
       set bee-nectar 0
-    ]
-  ]
-end
-
-to grow-nectar
-  ask patches with [flower? = true][
-    set flower-nectar flower-nectar + flower-nectar-production
-  ]
-end
-
-to decay-bee-pollen
-  ask bees [
-    if bee-pollen > 0 [
-      set bee-pollen bee-pollen - bee-pollen-decay
-    ]
-    if bee-pollen < 0 [
-      set bee-pollen 0
     ]
   ]
 end
 
 
 to go
-
   if ticks != 0 and ticks mod spring-duration = 0 [
     new-season
   ]
 
   move-bees
   interact
-  grow-nectar
 
   tick
 end
@@ -227,11 +186,11 @@ end
 GRAPHICS-WINDOW
 210
 10
-1063
-448
+933
+734
 -1
 -1
-13.0
+11.0
 1
 10
 1
@@ -243,8 +202,8 @@ GRAPHICS-WINDOW
 1
 -32
 32
--16
-16
+-32
+32
 1
 1
 1
@@ -294,7 +253,7 @@ nb-bees
 nb-bees
 1
 100
-50.0
+30.0
 1
 1
 NIL
@@ -308,18 +267,18 @@ SLIDER
 nb-flowers
 nb-flowers
 1
-100
-100.0
+300
+298.0
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-1077
-69
-1362
-447
+960
+59
+1245
+437
 flowers
 NIL
 NIL
@@ -334,21 +293,21 @@ PENS
 "default" 1.0 0 -10899396 true "" "plot count patches with [pcolor = green] / count patches"
 
 MONITOR
-1077
-20
-1160
-65
+1337
+10
+1420
+55
 density bees
-precision (nb-bees / count patches) 2
+precision (count bees / count patches) 2
 17
 1
 11
 
 MONITOR
-1172
-20
-1255
-65
+1055
+10
+1138
+55
 flowers
 count patches with [pcolor = green]
 17
@@ -356,21 +315,21 @@ count patches with [pcolor = green]
 11
 
 MONITOR
-1268
-21
-1361
-66
+1151
+11
+1244
+56
 bee per flower
-precision (nb-bees / count patches with [pcolor = green]) 2
+precision (count bees / count patches with [flower? = true]) 2
 17
 1
 11
 
 PLOT
-1410
-70
-1682
-446
+1253
+59
+1526
+437
 bees
 NIL
 NIL
@@ -385,15 +344,149 @@ PENS
 "default" 1.0 0 -8330359 true "" "plot count bees"
 
 MONITOR
-1378
-22
-1459
-67
+1251
+11
+1332
+56
 NIL
 hive-nectar
 17
 1
 11
+
+SLIDER
+14
+268
+185
+301
+soil-exhaustion-decay
+soil-exhaustion-decay
+0
+2
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+14
+227
+186
+260
+soil-max-exhaustion
+soil-max-exhaustion
+0
+10
+2.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+21
+322
+193
+355
+larvae-nectar-cost
+larvae-nectar-cost
+0
+50
+15.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+1534
+59
+1829
+439
+soil exhaustion
+NIL
+NIL
+0.0
+10.0
+0.0
+0.1
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count patches with [soil-exhaustion >= soil-max-exhaustion] / count patches"
+
+SLIDER
+23
+381
+195
+414
+bee-max-nectar
+bee-max-nectar
+0
+50
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+22
+443
+194
+476
+flower-max-nectar
+flower-max-nectar
+0
+150
+20.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+22
+495
+194
+528
+flower-max-pollen
+flower-max-pollen
+0
+150
+20.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+960
+10
+1039
+55
+bees
+count bees
+17
+1
+11
+
+SLIDER
+19
+551
+202
+584
+flower-reproduction-radius
+flower-reproduction-radius
+0
+10
+3.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
