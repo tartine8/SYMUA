@@ -7,6 +7,10 @@ globals [
   bee-pollen-gain
   hive-nectar
   flower-max-pollen
+  soil-max-exhaustion
+  hive-max-nectar
+  soil-exhaustion-decay
+  larvae-nectar-cost
 ]
 
 breed [bees bee]
@@ -21,6 +25,7 @@ patches-own [
   flower-pollen
   soil-exhaustion
   flower?
+  seed?
 ]
 
 to init
@@ -28,15 +33,21 @@ to init
 
   set spring-duration 90
   set bee-max-nectar 10
-  set flower-nectar 50
-  set flower-nectar-production 1
-  set bee-pollen-decay 1
-  set bee-pollen-gain 0.1
+  set flower-max-nectar 20
+  set flower-nectar-production 0.0
+  set bee-pollen-decay 0.1
+  set bee-pollen-gain 1
   set hive-nectar 0
+  set flower-max-pollen 20
+  set soil-max-exhaustion 10
+  set hive-max-nectar 1000
+  set soil-exhaustion-decay 0.2
+  set larvae-nectar-cost 15
 
   ask patch 0 0 [
-    ask patches in-radius 2 [set pcolor yellow]
+    set pcolor yellow
   ]
+
 
   init-bees
   init-flowers
@@ -58,7 +69,9 @@ to init-flowers
   ask patches with [pcolor != yellow][
     set flower-pollen 0
     set soil-exhaustion 0
-    set flower-nectar 0
+    set flower-nectar 40
+    set seed? false
+    set flower? false
   ]
   ask n-of nb-flowers patches with [pcolor != yellow] [
     set pcolor green
@@ -70,87 +83,144 @@ end
 
 
 to new-season
+  restitute-nectar
   respawn-flowers
   respawn-bees
+  regenerate-soil
+  set hive-nectar 0
+
+  ask patches with [flower? = false and pcolor != yellow] [
+    let c int ((soil-exhaustion / soil-max-exhaustion) * 255)
+    if c > 255 [set c 255]
+    set pcolor (list c 0 0)
+  ]
+end
+
+to restitute-nectar
+  ask bees [
+    set hive-nectar hive-nectar + bee-nectar
+    if hive-nectar > hive-max-nectar [set hive-nectar hive-max-nectar]
+  ]
 end
 
 to respawn-flowers
   ask patches with [flower? = true][
     set flower? false
+    set pcolor black
 
     let nbseed (flower-pollen / flower-max-pollen) * 3
 
-    ; for nbseed
-    ; for pick in autour de moi
-    ; if soil-exhaustion suffisament bien
-    ; flower true
+    repeat int nbseed [
+      ask one-of patches in-radius 3 with [pcolor != yellow] [
+        if (soil-exhaustion < soil-max-exhaustion) [
+          set seed?  true
+          set soil-exhaustion soil-exhaustion + 1
+        ]
+      ]
+    ]
 
     set flower-pollen 0
     set flower-nectar 0
-
-    if not flower? [
-      set pcolor black
-    ]
+  ]
+  ask patches with [seed? = true] [
+    set flower? true
+    set seed? false
+    set pcolor green
   ]
 
 end
 
 to respawn-bees
+  ask bees [die]
+  create-bees int (hive-nectar / larvae-nectar-cost) [
+    setxy 0 0
+    set shape "bee"
+    set bee-nectar 0
+    set bee-pollen 0
+  ]
 end
 
-
+to regenerate-soil
+  ask patches [
+    if soil-exhaustion > 0 [set soil-exhaustion soil-exhaustion - soil-exhaustion-decay]
+    if soil-exhaustion < 0 [set soil-exhaustion 0]
+  ]
+end
 
 
 to move-bees
   ask bees [
-    ifelse any? patches in-cone 8 60 with [pcolor = green]
-    [face one-of patches in-cone 8 60 with [pcolor = green]]
+    ifelse bee-nectar = bee-max-nectar [face patch 0 0] [
+    ifelse any? patches in-cone 8 60 with [flower? = true]
+    [face one-of patches in-cone 8 60 with [flower? = true]]
     [rt random 20 - 10]
+    ]
     fd 1
   ]
 end
 
-to pollinate
-  if random-float 1 < proba-pollinate and any? patches in-radius 3 with [pcolor = black] [
-    ask one-of patches in-radius 3 with [pcolor = black] [
-      set pcolor green
-      set life-time (random 6 + 7) * 5
-      set pollinated? false
-    ]
-  ]
-end
 
-to interract
+to interact
   ;bees pollinate flowers
-  ask patches with [pcolor = green] [
-    ask bees-here [
-      ifelse has-pollen? = true
+  ask patches with [flower? = true] [
+    if any? bees-here [
+    ask one-of bees-here [
+
+      set flower-pollen flower-pollen + bee-pollen
+      if flower-pollen > flower-max-pollen [set flower-pollen flower-max-pollen]
+      set bee-pollen bee-pollen + bee-pollen-gain
+      let bee-hunger (bee-max-nectar - bee-nectar)
+
+      ifelse flower-nectar > bee-hunger
       [
-        set has-pollen? false
-        pollinate
+        set flower-nectar (flower-nectar - bee-hunger)
+        set bee-nectar bee-max-nectar
       ]
-      [set has-pollen? true]
-    ]
+      [
+        set bee-nectar (bee-nectar + flower-nectar)
+        set flower-nectar 0
+      ]
+      ]
+     ]
   ]
   ;bees drop pollen in the hive
   ask patches with [pcolor = yellow] [
     ask bees-here [
-      if has-pollen? = true [set has-pollen? false]
+      set hive-nectar hive-nectar + bee-nectar
+      if hive-nectar > hive-max-nectar [set hive-nectar hive-max-nectar]
+      set bee-nectar 0
     ]
   ]
 end
 
-to decrease-life
-  ask patches with [pcolor = green] [
-    set life-time life-time - 1
-    if life-time = 0 [set pcolor black]
+to grow-nectar
+  ask patches with [flower? = true][
+    set flower-nectar flower-nectar + flower-nectar-production
   ]
 end
 
+to decay-bee-pollen
+  ask bees [
+    if bee-pollen > 0 [
+      set bee-pollen bee-pollen - bee-pollen-decay
+    ]
+    if bee-pollen < 0 [
+      set bee-pollen 0
+    ]
+  ]
+end
+
+
 to go
+
+  if ticks != 0 and ticks mod spring-duration = 0 [
+    new-season
+  ]
+
   move-bees
-  interract
-  decrease-life
+  interact
+  grow-nectar
+
   tick
 end
 @#$#@#$#@
@@ -224,7 +294,7 @@ nb-bees
 nb-bees
 1
 100
-30.0
+50.0
 1
 1
 NIL
@@ -239,7 +309,7 @@ nb-flowers
 nb-flowers
 1
 100
-50.0
+100.0
 1
 1
 NIL
@@ -296,20 +366,34 @@ precision (nb-bees / count patches with [pcolor = green]) 2
 1
 11
 
-SLIDER
-14
-218
-186
-251
-proba-pollinate
-proba-pollinate
-0
-1
-1.0
-0.01
-1
+PLOT
+1410
+70
+1682
+446
+bees
 NIL
-HORIZONTAL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -8330359 true "" "plot count bees"
+
+MONITOR
+1378
+22
+1459
+67
+NIL
+hive-nectar
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -362,6 +446,31 @@ arrow
 true
 0
 Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+bee
+true
+0
+Polygon -1184463 true false 152 149 77 163 67 195 67 211 74 234 85 252 100 264 116 276 134 286 151 300 167 285 182 278 206 260 220 242 226 218 226 195 222 166
+Polygon -16777216 true false 150 149 128 151 114 151 98 145 80 122 80 103 81 83 95 67 117 58 141 54 151 53 177 55 195 66 207 82 211 94 211 116 204 139 189 149 171 152
+Polygon -7500403 true true 151 54 119 59 96 60 81 50 78 39 87 25 103 18 115 23 121 13 150 1 180 14 189 23 197 17 210 19 222 30 222 44 212 57 192 58
+Polygon -16777216 true false 70 185 74 171 223 172 224 186
+Polygon -16777216 true false 67 211 71 226 224 226 225 211 67 211
+Polygon -16777216 true false 91 257 106 269 195 269 211 255
+Line -1 false 144 100 70 87
+Line -1 false 70 87 45 87
+Line -1 false 45 86 26 97
+Line -1 false 26 96 22 115
+Line -1 false 22 115 25 130
+Line -1 false 26 131 37 141
+Line -1 false 37 141 55 144
+Line -1 false 55 143 143 101
+Line -1 false 141 100 227 138
+Line -1 false 227 138 241 137
+Line -1 false 241 137 249 129
+Line -1 false 249 129 254 110
+Line -1 false 253 108 248 97
+Line -1 false 249 95 235 82
+Line -1 false 235 82 144 100
 
 box
 false
