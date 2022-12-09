@@ -75,10 +75,9 @@ end
 to respawn-flowers
   ask patches with [flower? = true][
 
-    ;FIXME sujet a changement : calcul du nombre de graines
-    let nbseed (flower-pollen / flower-max-pollen) * 3
+    let nbseed (flower-pollen / flower-max-pollen) * 2
 
-    repeat int nbseed [
+    repeat floor nbseed [
       ask one-of patches in-radius flower-reproduction-radius with [pcolor != yellow] [
         if (soil-exhaustion < soil-max-exhaustion) [
           set seed?  true
@@ -245,10 +244,10 @@ NIL
 1
 
 SLIDER
-13
-118
-185
-151
+12
+111
+184
+144
 nb-bees
 nb-bees
 1
@@ -268,7 +267,7 @@ nb-flowers
 nb-flowers
 1
 300
-298.0
+100.0
 1
 1
 NIL
@@ -385,15 +384,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-21
-322
-193
-355
+15
+313
+187
+346
 larvae-nectar-cost
 larvae-nectar-cost
 0
-50
-15.0
+100
+10.0
 1
 1
 NIL
@@ -418,14 +417,14 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count patches with [soil-exhaustion >= soil-max-exhaustion] / count patches"
 
 SLIDER
-23
-381
-195
-414
+17
+372
+189
+405
 bee-max-nectar
 bee-max-nectar
 0
-50
+20
 5.0
 1
 1
@@ -433,10 +432,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-22
-443
-194
-476
+16
+434
+188
+467
 flower-max-nectar
 flower-max-nectar
 0
@@ -448,10 +447,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-22
-495
-194
-528
+16
+486
+188
+519
 flower-max-pollen
 flower-max-pollen
 0
@@ -474,10 +473,10 @@ count bees
 11
 
 SLIDER
-19
-551
-202
-584
+13
+542
+196
+575
 flower-reproduction-radius
 flower-reproduction-radius
 0
