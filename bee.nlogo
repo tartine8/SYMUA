@@ -246,7 +246,7 @@ NIL
 SLIDER
 12
 111
-184
+193
 144
 nb-bees
 nb-bees
@@ -261,7 +261,7 @@ HORIZONTAL
 SLIDER
 13
 152
-185
+193
 185
 nb-flowers
 nb-flowers
@@ -284,17 +284,17 @@ NIL
 0.0
 1.0
 0.0
-0.1
+10.0
 true
 false
 "" ""
 PENS
-"default" 1.0 0 -10899396 true "" "plot count patches with [pcolor = green] / count patches"
+"default" 1.0 0 -10899396 true "" "plot count patches with [pcolor = green]"
 
 MONITOR
-1337
+1346
 10
-1420
+1429
 55
 density bees
 precision (count bees / count patches) 2
@@ -356,12 +356,12 @@ hive-nectar
 SLIDER
 14
 268
-185
+193
 301
 soil-exhaustion-decay
 soil-exhaustion-decay
 0
-2
+1
 0.5
 0.1
 1
@@ -371,7 +371,7 @@ HORIZONTAL
 SLIDER
 14
 227
-186
+193
 260
 soil-max-exhaustion
 soil-max-exhaustion
@@ -384,14 +384,14 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-313
-187
-346
+14
+308
+193
+341
 larvae-nectar-cost
 larvae-nectar-cost
-0
-100
+1
+30
 10.0
 1
 1
@@ -417,14 +417,14 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot count patches with [soil-exhaustion >= soil-max-exhaustion] / count patches"
 
 SLIDER
-17
-372
-189
-405
+14
+347
+193
+380
 bee-max-nectar
 bee-max-nectar
 0
-20
+10
 5.0
 1
 1
@@ -432,10 +432,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-16
-434
-188
-467
+14
+387
+194
+420
 flower-max-nectar
 flower-max-nectar
 0
@@ -447,10 +447,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-16
-486
-188
-519
+13
+426
+194
+459
 flower-max-pollen
 flower-max-pollen
 0
@@ -474,9 +474,9 @@ count bees
 
 SLIDER
 13
-542
-196
-575
+467
+194
+500
 flower-reproduction-radius
 flower-reproduction-radius
 0
@@ -486,6 +486,17 @@ flower-reproduction-radius
 1
 NIL
 HORIZONTAL
+
+MONITOR
+1439
+10
+1524
+55
+spring index
+(floor (ticks / 90)) + 1
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
